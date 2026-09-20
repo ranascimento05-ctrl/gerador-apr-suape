@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador APR — Orbit 360</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { background: white; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 100%; padding: 40px; }
+        h1 { color: #1f2937; margin-bottom: 8px; font-size: 28px; }
+        .subtitle { color: #6b7280; margin-bottom: 32px; font-size: 14px; }
+        .logo { width: 80px; height: 80px; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%); border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 40px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; color: #374151; font-weight: 500; margin-bottom: 6px; font-size: 14px; }
+        input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        input:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
+        button { width: 100%; padding: 12px; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        button:hover { transform: translateY(-2px); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .status { padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; margin-bottom: 20px; display: none; }
+        .status.success { background: #d1fae5; color: #065f46; display: block; }
+        .status.error { background: #fee2e2; color: #991b1b; display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎯</div>
+        <h1>Gerador APR Suape</h1>
+        <p class="subtitle">Sistema Orbit 360 — Porto de Suape</p>
+        
+        <div class="status" id="status"></div>
+        
+        <form id="form">
+            <div class="form-group">
+                <label for="empresa">Empresa</label>
+                <input type="text" id="empresa" name="empresa" placeholder="Nome da empresa" required>
+            </div>
+            <div class="form-group">
+                <label for="contrato">Contrato Nº</label>
+                <input type="text" id="contrato" name="contrato" placeholder="Ex: 2026/001">
+            </div>
+            <div class="form-group">
+                <label for="unidade">Unidade Operacional</label>
+                <input type="text" id="unidade" name="unidade" placeholder="Ex: Baia 02">
+            </div>
+            <div class="form-group">
+                <label for="processo">Processo</label>
+                <input type="text" id="processo" name="processo" placeholder="Descrição do processo">
+            </div>
+            <div class="form-group">
+                <label for="funcao">Função</label>
+                <input type="text" id="funcao" name="funcao" placeholder="Ex: Operador de Bomba">
+            </div>
+            <div class="form-group">
+                <label for="engenheiro">Engenheiro Responsável</label>
+                <input type="text" id="engenheiro" name="engenheiro" placeholder="Nome completo">
+            </div>
+            <button type="submit" id="btn">Gerar APR Excel</button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('form');
+        const btn = document.getElementById('btn');
+        const statusDiv = document.getElementById('status');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btn.disabled = true;
+            statusDiv.className = 'status';
+            statusDiv.textContent = 'Gerando...';
+
+            const data = Object.fromEntries(new FormData(form));
+
+            try {
+                const res = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const json = await res.json();
+
+                if (!res.ok) throw new Error(json.error || 'Erro desconhecido');
+
+                // Download
+                const link = document.createElement('a');
+                link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${json.file_b64}`;
+                link.download = json.filename;
+                link.click();
+
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ APR gerada com sucesso!';
+            } catch (err) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ ${err.message}`;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
